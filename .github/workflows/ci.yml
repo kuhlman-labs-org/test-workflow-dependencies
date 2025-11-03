@@ -1,0 +1,54 @@
+name: CI with Workflow Dependencies
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Use reusable workflow from same org (local dependency)
+  local-reusable-workflow:
+    uses: kuhlman-labs-org/test-dependency-target/.github/workflows/reusable.yml@main
+    with:
+      config: 'test'
+
+  # Standard job using actions from various sources
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # External dependency - actions org
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # External dependency - third party
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      # External dependency - another popular action
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Run tests
+        run: echo "Running tests..."
+
+  # Use another external reusable workflow
+  external-reusable-workflow:
+    uses: actions/reusable-workflows/.github/workflows/npm-publish.yml@v1
+    with:
+      node-version: '18'
+
+  # Composite action reference
+  composite-action-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Reference to a composite action in another repo
+      - name: Run composite action
+        uses: docker/setup-buildx-action@v3
